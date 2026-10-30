@@ -17,9 +17,11 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Unzip Build Files
+    - name: Unzip and Flatten Files
       run: |
-        unzip WormixPrimeBuild.zip
+        unzip WormixPrimeBuild.zip -d temp_extract
+        find temp_extract -mindepth 1 -maxdepth 1 -exec mv {} . \;
+        if [ -d "WormixPrimeBuild" ]; then mv WormixPrimeBuild/* . ; fi
         ls -la
 
     - name: Setup Java
@@ -34,10 +36,16 @@ jobs:
         air-version: "51.5.1"
         accept-license: true
 
-    - name: Generate Real MobileProvision
+    - name: Generate Cert and Profile (OpenSSL Only)
       run: |
-        openssl pkcs12 -in cert.p12 -out cert.pem -nodes -passin pass:123456
+        # 1. Генерируем ключ и сертификат
+        openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes -subj "/CN=WormixPrime"
+        openssl pkcs12 -export -in cert.pem -inkey key.pem -out cert.p12 -passout pass:123456
+        
+        # 2. Вытаскиваем DER для профиля
         openssl x509 -in cert.pem -outform der -out cert.der
+        
+        # 3. Пишем питоном валидный mobileprovision
         python3 -c "
         import plistlib
         with open('cert.der', 'rb') as f:
@@ -48,10 +56,7 @@ jobs:
             'CreationDate': '2024-01-01T00:00:00Z',
             'Platform': ['iOS'],
             'DeveloperCertificates': [cert_der],
-            'Entitlements': {
-                'application-identifier': 'ABCDE12345.ru.pragmatix.wormix.prime',
-                'get-task-allow': True,
-            },
+            'Entitlements': {'application-identifier': 'ABCDE12345.ru.pragmatix.wormix.prime', 'get-task-allow': True},
             'ExpirationDate': '2030-01-01T00:00:00Z',
             'Name': 'WormixPrime',
             'TeamIdentifier': ['ABCDE12345'],
