@@ -34,16 +34,20 @@ jobs:
         air-version: "51.5.1"
         accept-license: true
 
-    - name: Generate Valid MobileProvision
+    - name: Generate Real MobileProvision
       run: |
+        openssl pkcs12 -in cert.p12 -out cert.pem -nodes -passin pass:123456
+        openssl x509 -in cert.pem -outform der -out cert.der
         python3 -c "
         import plistlib
+        with open('cert.der', 'rb') as f:
+            cert_der = f.read()
         profile = {
             'AppIDName': 'WormixPrime',
             'ApplicationIdentifierPrefix': ['ABCDE12345'],
             'CreationDate': '2024-01-01T00:00:00Z',
             'Platform': ['iOS'],
-            'DeveloperCertificates': [b'fake_cert'],
+            'DeveloperCertificates': [cert_der],
             'Entitlements': {
                 'application-identifier': 'ABCDE12345.ru.pragmatix.wormix.prime',
                 'get-task-allow': True,
@@ -60,7 +64,7 @@ jobs:
 
     - name: Build IPA
       run: |
-        adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
+        adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -alias wormix -keypass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
