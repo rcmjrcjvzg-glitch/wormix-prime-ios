@@ -28,15 +28,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Download AIR SDK
-      run: |
-        curl -L -o airsdk.zip "https://airsdk.harman.com/assets/downloads/AIRSDK_Compiler_51.5.1.zip"
-        unzip -q airsdk.zip -d airsdk
+    - name: Setup Adobe AIR SDK
+      uses: joshtynjala/setup-adobe-air-action@v2
+      with:
+        air-version: "51.5.1"
+        accept-license: true
 
     - name: Build IPA
       run: |
-        chmod +x airsdk/bin/adt
-        ./airsdk/bin/adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
+        adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
