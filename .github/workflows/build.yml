@@ -34,16 +34,34 @@ jobs:
         air-version: "51.5.1"
         accept-license: true
 
-    - name: Build APP Bundle
+    - name: Generate Valid MobileProvision
       run: |
-        adt -package -target bundle -storetype pkcs12 -keystore cert.p12 -storepass 123456 WormixPrime.app application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
+        python3 -c "
+        import plistlib
+        profile = {
+            'AppIDName': 'WormixPrime',
+            'ApplicationIdentifierPrefix': ['ABCDE12345'],
+            'CreationDate': '2024-01-01T00:00:00Z',
+            'Platform': ['iOS'],
+            'DeveloperCertificates': [b'fake_cert'],
+            'Entitlements': {
+                'application-identifier': 'ABCDE12345.ru.pragmatix.wormix.prime',
+                'get-task-allow': True,
+            },
+            'ExpirationDate': '2030-01-01T00:00:00Z',
+            'Name': 'WormixPrime',
+            'TeamIdentifier': ['ABCDE12345'],
+            'UUID': '12345678-1234-1234-1234-123456789012',
+            'Version': 1
+        }
+        with open('dummy.mobileprovision', 'wb') as f:
+            plistlib.dump(profile, f)
+        "
 
-    - name: Package to IPA
+    - name: Build IPA
       run: |
-        mkdir -p Payload
-        mv WormixPrime.app Payload/
-        zip -r WormixPrime.ipa Payload/
-        
+        adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
+
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
