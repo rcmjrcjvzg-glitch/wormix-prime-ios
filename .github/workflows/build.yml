@@ -34,10 +34,16 @@ jobs:
         air-version: "51.5.1"
         accept-license: true
 
-    - name: Build IPA
+    - name: Build APP Bundle
       run: |
-        adt -package -target ipa-test-interpreter -storetype pkcs12 -keystore cert.p12 -storepass 123456 -provisioning-profile dummy.mobileprovision WormixPrime.ipa application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
+        adt -package -target bundle -storetype pkcs12 -keystore cert.p12 -storepass 123456 WormixPrime.app application.xml wormix-mobile.swf wormix-game.swf -C . data -C . icon
 
+    - name: Package to IPA
+      run: |
+        mkdir -p Payload
+        mv WormixPrime.app Payload/
+        zip -r WormixPrime.ipa Payload/
+        
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
